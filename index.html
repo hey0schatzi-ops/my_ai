@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>수박 게임</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="game-shell" aria-label="수박 게임">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Suika Game</p>
+            <h1>수박 게임</h1>
+          </div>
+          <div class="scoreboard">
+            <div>
+              <span>점수</span>
+              <strong id="score">0</strong>
+            </div>
+            <div>
+              <span>최고</span>
+              <strong id="best">0</strong>
+            </div>
+          </div>
+        </header>
+
+        <div class="board-wrap">
+          <canvas id="game" width="500" height="600" aria-label="게임 보드"></canvas>
+          <canvas id="next" width="60" height="60" aria-label="다음 과일"></canvas>
+          <div id="overlay" class="overlay hidden">
+            <h2>게임 오버!</h2>
+            <p id="gameOverMsg">과일이 위험선을 넘었어요!</p>
+            <button id="restartOverlay" type="button">다시 시작</button>
+          </div>
+        </div>
+
+        <footer class="controls">
+          <button id="restart" type="button">새 게임</button>
+          <button id="drop" type="button">떨어뜨리기</button>
+          <div class="tip">
+            <span>클릭/터치: 과일을 떨어뜨리기! 같은 과일끼리 합쳐서 수박을 만드세요!</span>
+          </div>
+        </footer>
+      </section>
+    </main>
+    <script src="game.js"></script>
+  </body>
+</html>
