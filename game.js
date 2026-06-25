@@ -1,6 +1,6 @@
 /**
- * 머지 레스토랑 - Merge Cooking Game
- * 같은 재료를 합쳐서 요리를 완성하는 퍼즐 게임
+ * 머지 레스토랑 - Merge Cooking Game (v2.0)
+ * 생성기, 조리대, 손님 주문 시스템 추가
  */
 
 // ===== DOM 요소 =====
@@ -8,8 +8,9 @@ const gridEl = document.getElementById('grid');
 const scoreEl = document.getElementById('score');
 const bestEl = document.getElementById('best');
 const levelEl = document.getElementById('level');
+const goldEl = document.getElementById('gold');
 const ordersEl = document.getElementById('orders');
-const nextEl = document.getElementById('nextIngredient');
+const generatorsEl = document.getElementById('generators');
 const recipeListEl = document.getElementById('recipeList');
 const overlayEl = document.getElementById('overlay');
 const gameOverMsgEl = document.getElementById('gameOverMsg');
@@ -17,101 +18,141 @@ const finalScoreEl = document.getElementById('finalScore');
 const restartBtn = document.getElementById('restart');
 const restartOverlayBtn = document.getElementById('restartOverlay');
 const timerFillEl = document.getElementById('timerFill');
+const cookBtn = document.getElementById('cookBtn');
+const cookingSlots = document.querySelectorAll('.cooking-slot');
 
 // ===== 게임 설정 =====
 const GRID_COLS = 5;
 const GRID_ROWS = 4;
 const GRID_SIZE = GRID_COLS * GRID_ROWS;
+const COOKING_SLOTS_COUNT = 3;
 
-// ===== 요리/재료 데이터 =====
-// 레벨별 요리 정보 (이모지, 이름, 점수)
-const ingredients = [
-  // 기본 재료 (레벨 0-4)
-  { emoji: '🥬', name: '양상추', score: 1, tier: '재료' },
-  { emoji: '🍅', name: '토마토', score: 2, tier: '재료' },
-  { emoji: '🧅', name: '양파', score: 3, tier: '재료' },
-  { emoji: '🥕', name: '당근', score: 4, tier: '재료' },
-  { emoji: '🧀', name: '치즈', score: 5, tier: '재료' },
-  
-  // 중간 재료 (레벨 5-9)
-  { emoji: '🥗', name: '샐러드', score: 10, tier: '요리' },
-  { emoji: '🍝', name: '파스타', score: 20, tier: '요리' },
-  { emoji: '🥩', name: '스테이크', score: 30, tier: '요리' },
-  { emoji: '🍞', name: '빵', score: 6, tier: '재료' },
-  { emoji: '🥚', name: '달걀', score: 7, tier: '재료' },
-  
-  // 고급 요리 (레벨 10-14)
-  { emoji: '🍔', name: '햄버거', score: 50, tier: '특선' },
-  { emoji: '🌮', name: '타코', score: 60, tier: '특선' },
-  { emoji: '🥪', name: '샌드위치', score: 40, tier: '요리' },
-  { emoji: '🍕', name: '피자', score: 80, tier: '특선' },
-  { emoji: '🍱', name: '도시락', score: 70, tier: '특선' },
-  
-  // 최고급 요리 (레벨 15+)
-  { emoji: '🍣', name: '스시', score: 100, tier: '코스' },
-  { emoji: '🥘', name: '스튜', score: 90, tier: '특선' },
-  { emoji: '🍛', name: '카레라이스', score: 110, tier: '코스' },
-  { emoji: '🍲', name: '샤브샤브', score: 120, tier: '코스' },
-  { emoji: '🎂', name: '케이크', score: 200, tier: '디저트' },
+// ===== 생성기 데이터 =====
+const generators = [
+  { id: 'veggie', emoji: '🧺', name: '채소', cost: 5, items: ['lettuce', 'tomato', 'onion', 'carrot', 'potato'] },
+  { id: 'fruit', emoji: '🍎', name: '과일', cost: 8, items: ['apple', 'grape', 'orange', 'watermelon'] },
+  { id: 'meat', emoji: '🥩', name: '고기', cost: 15, items: ['chicken', 'beef', 'pork'] },
+  { id: 'dairy', emoji: '🧈', name: '유제품', cost: 10, items: ['milk', 'cheese', 'butter', 'egg'] },
+  { id: 'bakery', emoji: '🍞', name: '빵', cost: 7, items: ['bread', 'rice', 'flour'] },
 ];
 
+// ===== 재료 데이터 =====
+const ingredients = {
+  // 채소
+  lettuce: { emoji: '🥬', name: '양상추', category: 'veggie', tier: 1 },
+  tomato: { emoji: '🍅', name: '토마토', category: 'veggie', tier: 1 },
+  onion: { emoji: '🧅', name: '양파', category: 'veggie', tier: 1 },
+  carrot: { emoji: '🥕', name: '당근', category: 'veggie', tier: 1 },
+  
+  // 과일
+  apple: { emoji: '🍎', name: '사과', category: 'fruit', tier: 1 },
+  grape: { emoji: '🍇', name: '포도', category: 'fruit', tier: 1 },
+  orange: { emoji: '🍊', name: '귤', category: 'fruit', tier: 1 },
+  watermelon: { emoji: '🍉', name: '수박', category: 'fruit', tier: 2 },
+  
+  // 고기
+  chicken: { emoji: '🍗', name: '닭고기', category: 'meat', tier: 1 },
+  beef: { emoji: '🥩', name: '소고기', category: 'meat', tier: 2 },
+  pork: { emoji: '🥓', name: '돼지고기', category: 'meat', tier: 1 },
+  
+  // 유제품
+  milk: { emoji: '🥛', name: '우유', category: 'dairy', tier: 1 },
+  cheese: { emoji: '🧀', name: '치즈', category: 'dairy', tier: 1 },
+  butter: { emoji: '🧈', name: '버터', category: 'dairy', tier: 1 },
+  
+  // 빵/곡물
+  bread: { emoji: '🍞', name: '빵', category: 'bakery', tier: 1 },
+  rice: { emoji: '🍚', name: '쌀', category: 'bakery', tier: 1 },
+  flour: { emoji: '🌾', name: '밀', category: 'bakery', tier: 1 },
+  
+  // 기타
+  potato: { emoji: '🥔', name: '감자', category: 'veggie', tier: 1 },
+  egg: { emoji: '🥚', name: '달걀', category: 'dairy', tier: 1 },
+};
+
+// ===== 요리 레시피 =====
+// 재료 조합 → 요리 (순서 무관)
+const recipes = [
+  // 간단한 요리
+  { ingredients: ['lettuce', 'tomato'], result: 'salad', resultEmoji: '🥗', resultName: '샐러드', score: 20, gold: 15 },
+  { ingredients: ['tomato', 'onion'], result: 'sauce', resultEmoji: '🍝', resultName: '토마토소스', score: 25, gold: 18 },
+  { ingredients: ['lettuce', 'cheese'], result: 'cheeseSalad', resultEmoji: '🥗', resultName: '치즈샐러드', score: 30, gold: 22 },
+  { ingredients: ['bread', 'cheese'], result: 'cheeseToast', resultEmoji: '🧀', resultName: '치즈토스트', score: 28, gold: 20 },
+  { ingredients: ['bread', 'butter'], result: 'butterToast', resultEmoji: '🍞', resultName: '버터토스트', score: 22, gold: 16 },
+  { ingredients: ['apple', 'grape'], result: 'fruitSalad', resultEmoji: '🍓', resultName: '과일샐러드', score: 35, gold: 25 },
+  { ingredients: ['orange', 'watermelon'], result: 'fruitPlatter', resultEmoji: '🍹', resultName: '과일플래터', score: 45, gold: 35 },
+  { ingredients: ['milk', 'flour'], result: 'dough', resultEmoji: '🫓', resultName: '반죽', score: 15, gold: 12 },
+  { ingredients: ['rice', 'chicken'], result: 'chickenRice', resultEmoji: '🍛', resultName: '닭고기밥', score: 40, gold: 30 },
+  
+  // 중간 요리
+  { ingredients: ['bread', 'chicken', 'lettuce'], result: 'chickenSandwich', resultEmoji: '🥪', resultName: '닭고기샌드위치', score: 60, gold: 45 },
+  { ingredients: ['bread', 'beef', 'cheese'], result: 'burger', resultEmoji: '🍔', resultName: '햄버거', score: 80, gold: 60 },
+  { ingredients: ['bread', 'pork', 'cheese'], result: 'porkSandwich', resultEmoji: '🥪', resultName: '돼지고기샌드위치', score: 65, gold: 50 },
+  { ingredients: ['tomato', 'cheese', 'flour'], result: 'pizza', resultEmoji: '🍕', resultName: '피자', score: 90, gold: 70 },
+  { ingredients: ['flour', 'butter', 'milk'], result: 'cake', resultEmoji: '🎂', resultName: '케이크', score: 100, gold: 80 },
+  { ingredients: ['rice', 'beef', 'carrot'], result: 'beefBowl', resultEmoji: '🥘', resultName: '소고기덮밥', score: 75, gold: 55 },
+  { ingredients: ['chicken', 'onion', 'carrot'], result: 'chickenStew', resultEmoji: '🍲', resultName: '닭고기스튜', score: 70, gold: 52 },
+  
+  // 고급 요리
+  { ingredients: ['beef', 'potato', 'onion'], result: 'beefStew', resultEmoji: '🥘', resultName: '소고기스튜', score: 120, gold: 90 },
+  { ingredients: ['watermelon', 'grape', 'apple'], result: 'fruitBasket', resultEmoji: '🧺', resultName: '과일바구니', score: 150, gold: 120 },
+  { ingredients: ['bread', 'beef', 'cheese', 'lettuce'], result: 'deluxeBurger', resultEmoji: '🍔', resultName: '디럭스햄버거', score: 180, gold: 140 },
+  { ingredients: ['flour', 'butter', 'milk', 'cheese'], result: 'cheeseCake', resultEmoji: '🍰', resultName: '치즈케이크', score: 200, gold: 160 },
+];
+
+// ===== 손님 이름 =====
+const customerNames = ['김철수', '이영희', '박민수', '정수진', '홍길동', '최유리', '장현우', '강민지', '윤서준', '임하늘'];
+
 // ===== 게임 상태 =====
-let grid = [];           // 그리드 배열 (인덱스: 아이템 레벨 또는 null)
+let grid = [];
 let score = 0;
-let best = parseInt(localStorage.getItem('merge-restaurant-best') || '0');
+let best = parseInt(localStorage.getItem('merge-restaurant-best-v2') || '0');
 let level = 1;
-let selectedCell = null; // 선택된 셀 인덱스
-let orders = [];         // 현재 주문 목록
-let nextIngredient = 0;  // 다음에 나올 재료 레벨
-let combo = 0;           // 연속 머지 콤보
+let gold = 100;
+let selectedCell = null;
+let orders = [];
+let cookingSlotsItems = [null, null, null];
+let combo = 0;
 let gameOver = false;
 let orderTimer = null;
-let orderSpawnTimer = null;
+let customersServed = 0;
 
 // ===== 초기화 =====
 function init() {
   grid = new Array(GRID_SIZE).fill(null);
   score = 0;
   level = 1;
+  gold = 100;
   selectedCell = null;
   orders = [];
+  cookingSlotsItems = [null, null, null];
   combo = 0;
   gameOver = false;
+  customersServed = 0;
   
-  // 초기 재료 배치 (3개)
-  for (let i = 0; i < 3; i++) {
-    placeRandomIngredient();
-  }
+  // 초기 재료 2개 배치 (무료)
+  placeRandomIngredient();
+  placeRandomIngredient();
   
-  // 다음 재료 설정
-  nextIngredient = getRandomIngredientLevel();
-  
-  // 주문 생성
-  generateOrder();
+  // 초기 주문 생성
   generateOrder();
   
   // UI 업데이트
   updateScore();
   updateLevel();
+  updateGold();
   renderGrid();
-  renderNextIngredient();
+  renderGenerators();
+  renderCookingSlots();
   renderOrders();
   renderRecipes();
   
-  // 오버레이 숨기기
   overlayEl.classList.add('hidden');
   
-  // 주문 타이머 시작
   startOrderTimer();
 }
 
 // ===== 유틸리티 =====
-function getRandomIngredientLevel() {
-  // 레벨 1~4의 기본 재료 중 랜덤 (레벨에 따라 높은 재료 확률 증가)
-  const maxLevel = Math.min(4, 1 + Math.floor(level / 3));
-  return Math.floor(Math.random() * maxLevel);
-}
-
 function placeRandomIngredient() {
   const emptyCells = [];
   grid.forEach((cell, idx) => {
@@ -121,7 +162,10 @@ function placeRandomIngredient() {
   if (emptyCells.length === 0) return false;
   
   const randomIdx = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-  grid[randomIdx] = getRandomIngredientLevel();
+  const randomGenerator = generators[Math.floor(Math.random() * generators.length)];
+  const randomItem = randomGenerator.items[Math.floor(Math.random() * randomGenerator.items.length)];
+  
+  grid[randomIdx] = randomItem;
   return true;
 }
 
@@ -129,166 +173,192 @@ function placeRandomIngredient() {
 function renderGrid() {
   gridEl.innerHTML = '';
   
-  grid.forEach((itemLevel, idx) => {
+  grid.forEach((itemId, idx) => {
     const cell = document.createElement('div');
     cell.className = 'cell';
     cell.dataset.index = idx;
     
-    if (itemLevel !== null) {
-      const ingredient = ingredients[itemLevel];
+    if (itemId !== null) {
+      const ingredient = ingredients[itemId];
       
       const emoji = document.createElement('span');
       emoji.className = 'cell-emoji';
       emoji.textContent = ingredient.emoji;
       cell.appendChild(emoji);
-      
-      const levelBadge = document.createElement('span');
-      levelBadge.className = 'cell-level';
-      levelBadge.textContent = `Lv.${itemLevel + 1}`;
-      cell.appendChild(levelBadge);
     }
     
-    // 선택 상태
     if (selectedCell === idx) {
       cell.classList.add('selected');
     }
     
-    // 클릭 이벤트
     cell.addEventListener('click', () => handleCellClick(idx));
-    
-    // 드래그 이벤트
-    cell.draggable = itemLevel !== null;
-    cell.addEventListener('dragstart', (e) => handleDragStart(e, idx));
-    cell.addEventListener('dragover', (e) => e.preventDefault());
-    cell.addEventListener('drop', (e) => handleDrop(e, idx));
     
     gridEl.appendChild(cell);
   });
-  
-  // 합치기 가능한 셀 하이라이트
-  highlightMergeable();
 }
 
-function highlightMergeable() {
-  if (selectedCell === null || grid[selectedCell] === null) return;
+function renderGenerators() {
+  generatorsEl.innerHTML = '';
   
-  const selectedLevel = grid[selectedCell];
-  const cells = gridEl.querySelectorAll('.cell');
-  
-  cells.forEach((cell, idx) => {
-    if (idx === selectedCell) return;
+  generators.forEach(gen => {
+    const el = document.createElement('div');
+    el.className = 'generator';
+    if (gold < gen.cost) el.classList.add('disabled');
     
-    // 같은 레벨이거나 빈칸이면 하이라이트
-    if (grid[idx] === selectedLevel || grid[idx] === null) {
-      cell.classList.add('hint');
+    el.innerHTML = `
+      <span class="generator-emoji">${gen.emoji}</span>
+      <span class="generator-name">${gen.name}</span>
+      <span class="generator-cost">💰${gen.cost}</span>
+    `;
+    
+    el.addEventListener('click', () => buyFromGenerator(gen));
+    generatorsEl.appendChild(el);
+  });
+}
+
+function renderCookingSlots() {
+  cookingSlots.forEach((slot, idx) => {
+    const itemId = cookingSlotsItems[idx];
+    if (itemId) {
+      slot.textContent = ingredients[itemId].emoji;
+      slot.classList.add('filled');
+    } else {
+      slot.textContent = '';
+      slot.classList.remove('filled');
     }
   });
-}
-
-function renderNextIngredient() {
-  const ingredient = ingredients[nextIngredient];
-  nextEl.innerHTML = `
-    <span class="next-emoji">${ingredient.emoji}</span>
-    <span class="next-name">${ingredient.name}</span>
-  `;
   
-  // 드래그 가능하게
-  nextEl.draggable = true;
-  nextEl.addEventListener('dragstart', (e) => {
-    e.dataTransfer.setData('text/plain', 'next');
-    e.dataTransfer.effectAllowed = 'move';
-  });
-  
-  // 클릭으로 배치
-  nextEl.onclick = () => placeNextIngredient();
+  // 요리 버튼 활성화 체크
+  const canCook = checkCookingRecipe();
+  cookBtn.disabled = !canCook;
 }
 
 function renderOrders() {
   ordersEl.innerHTML = '';
   
   orders.forEach((order, idx) => {
-    const ingredient = ingredients[order.targetLevel];
     const card = document.createElement('div');
     card.className = 'order-card';
+    
+    // 주문 요리를 만들 수 있는지 체크
+    const canServe = canServeOrder(order);
+    if (canServe) card.classList.add('can-serve');
+    
     card.innerHTML = `
-      <span class="order-emoji">${ingredient.emoji}</span>
-      <span class="order-name">${ingredient.name}</span>
-      <span class="order-reward">+${order.reward}점</span>
+      <span class="order-emoji">${order.emoji}</span>
+      <span class="order-name">${order.name}</span>
+      <span class="order-reward">💰${order.reward} +${order.score}점</span>
+      <span class="order-customer">${order.customer}</span>
     `;
+    
+    if (canServe) {
+      card.addEventListener('click', () => serveOrder(idx));
+    }
+    
     ordersEl.appendChild(card);
   });
   
-  // 주문이 없으면 메시지
   if (orders.length === 0) {
-    ordersEl.innerHTML = '<p style="color: var(--muted); text-align: center; font-size: 0.8rem;">주문 대기 중...</p>';
+    ordersEl.innerHTML = '<p style="color: var(--muted); text-align: center; font-size: 0.8rem;">손님 대기 중...</p>';
   }
 }
 
 function renderRecipes() {
   recipeListEl.innerHTML = '';
   
-  // 첫 10개 레시피만 표시
-  for (let i = 0; i < Math.min(10, ingredients.length - 1); i++) {
-    const from = ingredients[i];
-    const to = ingredients[i + 1];
-    
+  recipes.forEach(recipe => {
     const item = document.createElement('div');
     item.className = 'recipe-item';
+    
+    const ingredientEmojis = recipe.ingredients.map(id => ingredients[id].emoji).join(' + ');
+    
     item.innerHTML = `
-      <span class="recipe-emoji">${from.emoji}</span>
-      <span class="recipe-arrow">+</span>
-      <span class="recipe-emoji">${from.emoji}</span>
+      <span>${ingredientEmojis}</span>
       <span class="recipe-arrow">→</span>
-      <span class="recipe-emoji">${to.emoji}</span>
+      <span class="recipe-emoji">${recipe.resultEmoji}</span>
+      <span class="recipe-name">${recipe.resultName}</span>
     `;
+    
     recipeListEl.appendChild(item);
-  }
+  });
 }
 
 function updateScore() {
   scoreEl.textContent = score;
   best = Math.max(best, score);
   bestEl.textContent = best;
-  localStorage.setItem('merge-restaurant-best', best.toString());
+  localStorage.setItem('merge-restaurant-best-v2', best.toString());
 }
 
 function updateLevel() {
   levelEl.textContent = level;
 }
 
-// ===== 게임 로직 =====
+function updateGold() {
+  goldEl.textContent = gold;
+  renderGenerators();
+}
+
+// ===== 생성기 =====
+function buyFromGenerator(generator) {
+  if (gameOver) return;
+  if (gold < generator.cost) return;
+  
+  const emptyCells = [];
+  grid.forEach((cell, idx) => {
+    if (cell === null) emptyCells.push(idx);
+  });
+  
+  if (emptyCells.length === 0) {
+    alert('그리드가 가득 찼습니다!');
+    return;
+  }
+  
+  gold -= generator.cost;
+  updateGold();
+  
+  const randomItem = generator.items[Math.floor(Math.random() * generator.items.length)];
+  const targetIdx = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+  grid[targetIdx] = randomItem;
+  
+  renderGrid();
+  
+  const cells = gridEl.querySelectorAll('.cell');
+  cells[targetIdx].classList.add('new-item');
+  
+  showFloatingScore(cells[targetIdx], `-${generator.cost}💰`, true);
+}
+
+// ===== 그리드 조작 =====
 function handleCellClick(idx) {
   if (gameOver) return;
   
+  const itemId = grid[idx];
+  
   if (selectedCell === null) {
-    // 첫 선택
-    if (grid[idx] !== null) {
+    if (itemId !== null) {
       selectedCell = idx;
       renderGrid();
     }
   } else if (selectedCell === idx) {
-    // 같은 셀 클릭 - 선택 해제
     selectedCell = null;
     renderGrid();
   } else {
-    // 두 번째 선택
-    const fromLevel = grid[selectedCell];
-    const toLevel = grid[idx];
+    const selectedItemId = grid[selectedCell];
     
-    if (fromLevel === null) {
-      // 빈 셀에서 시작 - 선택만 변경
-      if (toLevel !== null) {
+    if (selectedItemId === null) {
+      if (itemId !== null) {
         selectedCell = idx;
         renderGrid();
       }
-    } else if (toLevel === null) {
+    } else if (itemId === null) {
       // 빈 칸으로 이동
       moveItem(selectedCell, idx);
-    } else if (fromLevel === toLevel && fromLevel < ingredients.length - 1) {
-      // 같은 레벨 아이템 머지
+    } else if (selectedItemId === itemId) {
+      // 같은 재료 머지
       mergeItems(selectedCell, idx);
     } else {
-      // 다른 레벨 - 선택 변경
+      // 다른 재료 - 선택 변경
       selectedCell = idx;
       renderGrid();
     }
@@ -300,30 +370,28 @@ function moveItem(fromIdx, toIdx) {
   grid[fromIdx] = null;
   selectedCell = null;
   
-  // 새 위치에 애니메이션
   renderGrid();
   const cells = gridEl.querySelectorAll('.cell');
   cells[toIdx].classList.add('new-item');
-  
-  // 머지 체크 (인접한 같은 레벨)
-  setTimeout(() => checkAutoMerge(toIdx), 100);
 }
 
 function mergeItems(fromIdx, toIdx) {
-  const newLevel = grid[fromIdx] + 1;
+  const itemId = grid[fromIdx];
+  const ingredient = ingredients[itemId];
   
+  // 같은 카테고리이고 tier가 같으면 머지
+  // 간단하게: 같은 재료면 상위 티어로 업그레이드
   grid[fromIdx] = null;
-  grid[toIdx] = newLevel;
+  grid[toIdx] = itemId; // 같은 재료 유지 (티어 업그레이드는 추후)
   selectedCell = null;
   
   // 점수 추가
-  const points = ingredients[newLevel].score;
+  const points = ingredient.tier * 5;
   score += points;
   combo++;
   
-  // 콤보 보너스
   if (combo > 1) {
-    const comboBonus = combo * 5;
+    const comboBonus = combo * 3;
     score += comboBonus;
     showComboPopup(combo);
   }
@@ -331,96 +399,172 @@ function mergeItems(fromIdx, toIdx) {
   updateScore();
   checkLevelUp();
   
-  // 머지 애니메이션
   renderGrid();
   const cells = gridEl.querySelectorAll('.cell');
   cells[toIdx].classList.add('merging');
   
-  // 떠다니는 점수 표시
-  showFloatingScore(cells[toIdx], points);
+  showFloatingScore(cells[toIdx], `+${points}`);
   
-  // 주문 완료 체크
-  checkOrders(newLevel, toIdx);
-  
-  // 새 재료 생성
-  setTimeout(() => {
-    placeRandomIngredient();
-    renderGrid();
-    checkGameOver();
-  }, 300);
+  setTimeout(() => checkGameOver(), 200);
 }
 
-function checkAutoMerge(idx) {
-  if (grid[idx] === null) return;
+// ===== 조리대 =====
+function addToCookingSlot(itemId) {
+  const emptySlotIdx = cookingSlotsItems.indexOf(null);
+  if (emptySlotIdx === -1) return false;
   
-  const level = grid[idx];
-  const row = Math.floor(idx / GRID_COLS);
-  const col = idx % GRID_COLS;
+  cookingSlotsItems[emptySlotIdx] = itemId;
+  renderCookingSlots();
+  return true;
+}
+
+function removeFromCookingSlot(idx) {
+  if (cookingSlotsItems[idx] === null) return;
   
-  // 인접 셀 체크
-  const neighbors = [];
-  if (row > 0) neighbors.push(idx - GRID_COLS); // 위
-  if (row < GRID_ROWS - 1) neighbors.push(idx + GRID_COLS); // 아래
-  if (col > 0) neighbors.push(idx - 1); // 왼쪽
-  if (col < GRID_COLS - 1) neighbors.push(idx + 1); // 오른쪽
+  const itemId = cookingSlotsItems[idx];
+  cookingSlotsItems[idx] = null;
   
-  for (const nIdx of neighbors) {
-    if (grid[nIdx] === level && level < ingredients.length - 1) {
-      mergeItems(idx, nIdx);
-      return;
+  // 그리드에 다시 배치
+  const emptyCells = [];
+  grid.forEach((cell, i) => {
+    if (cell === null) emptyCells.push(i);
+  });
+  
+  if (emptyCells.length > 0) {
+    const targetIdx = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+    grid[targetIdx] = itemId;
+    renderGrid();
+  }
+  
+  renderCookingSlots();
+}
+
+function checkCookingRecipe() {
+  const items = cookingSlotsItems.filter(i => i !== null);
+  if (items.length < 2) return null;
+  
+  for (const recipe of recipes) {
+    const recipeIngredients = [...recipe.ingredients].sort();
+    const slotIngredients = [...items].sort();
+    
+    if (recipeIngredients.length === slotIngredients.length &&
+        recipeIngredients.every((ing, idx) => ing === slotIngredients[idx])) {
+      return recipe;
     }
   }
+  
+  return null;
 }
 
-function checkOrders(completedLevel, cellIdx) {
-  const completedOrders = [];
+function cook() {
+  if (gameOver) return;
   
-  orders.forEach((order, idx) => {
-    if (order.targetLevel === completedLevel) {
-      // 주문 완료!
-      score += order.reward;
-      completedOrders.push(idx);
-      
-      // 완료 애니메이션
-      const cells = gridEl.querySelectorAll('.cell');
-      if (cells[cellIdx]) {
-        showFloatingScore(cells[cellIdx], order.reward, true);
+  const recipe = checkCookingRecipe();
+  if (!recipe) return;
+  
+  // 요리 완성!
+  score += recipe.score;
+  gold += recipe.gold;
+  
+  updateScore();
+  updateGold();
+  checkLevelUp();
+  
+  // 조리대 비우기
+  cookingSlotsItems = [null, null, null];
+  renderCookingSlots();
+  
+  showComboPopup(0, `🍳 ${recipe.resultName} 완성!`);
+  
+  // 주문 체크
+  checkOrdersForDish(recipe.result);
+}
+
+// 조리대 슬롯 클릭 이벤트
+cookingSlots.forEach((slot, idx) => {
+  slot.addEventListener('click', () => {
+    if (cookingSlotsItems[idx] !== null) {
+      removeFromCookingSlot(idx);
+    } else if (selectedCell !== null && grid[selectedCell] !== null) {
+      // 선택된 재료를 조리대로
+      const itemId = grid[selectedCell];
+      if (addToCookingSlot(itemId)) {
+        grid[selectedCell] = null;
+        selectedCell = null;
+        renderGrid();
+        renderCookingSlots();
       }
     }
   });
+});
+
+cookBtn.addEventListener('click', cook);
+
+// ===== 주문 시스템 =====
+function generateOrder() {
+  if (orders.length >= 3) return;
   
-  // 완료된 주문 제거 (역순으로)
+  // 가능한 요리 중 랜덤 선택
+  const availableRecipes = recipes.filter(r => {
+    // 플레이어 레벨에 맞는 요리만
+    const totalTier = r.ingredients.reduce((sum, id) => sum + ingredients[id].tier, 0);
+    return totalTier <= level + 2;
+  });
+  
+  if (availableRecipes.length === 0) return;
+  
+  const recipe = availableRecipes[Math.floor(Math.random() * availableRecipes.length)];
+  const customer = customerNames[Math.floor(Math.random() * customerNames.length)];
+  
+  orders.push({
+    dishId: recipe.result,
+    emoji: recipe.resultEmoji,
+    name: recipe.resultName,
+    reward: recipe.gold + 10,
+    score: recipe.score,
+    customer: customer,
+    timeLeft: 90
+  });
+  
+  renderOrders();
+}
+
+function canServeOrder(order) {
+  // 그리드에 주문 요리를 만들 재료가 있는지 체크 (간단 버전)
+  // 실제로는 조리대에서 요리를 만들어야 함
+  return false; // 조리대에서 요리해야 하므로 항상 false
+}
+
+function serveOrder(idx) {
+  // 이 함수는 이제 사용 안 함 (조리대 시스템 사용)
+}
+
+function checkOrdersForDish(dishId) {
+  const completedOrders = [];
+  
+  orders.forEach((order, idx) => {
+    if (order.dishId === dishId) {
+      // 주문 완료!
+      score += order.score;
+      gold += order.reward;
+      completedOrders.push(idx);
+      customersServed++;
+    }
+  });
+  
   completedOrders.sort((a, b) => b - a).forEach(idx => {
     orders.splice(idx, 1);
   });
   
   if (completedOrders.length > 0) {
     updateScore();
+    updateGold();
     renderOrders();
     
-    // 새 주문 생성
+    showComboPopup(0, `🎉 주문 완료! +${completedOrders.length}명`);
+    
     setTimeout(() => generateOrder(), 1000);
   }
-}
-
-function generateOrder() {
-  if (orders.length >= 3) return; // 최대 3개 주문
-  
-  // 현재 레벨에 맞는 목표 설정
-  const maxTarget = Math.min(ingredients.length - 1, level + 5);
-  const minTarget = Math.max(0, level - 2);
-  const targetLevel = minTarget + Math.floor(Math.random() * (maxTarget - minTarget + 1));
-  
-  const ingredient = ingredients[targetLevel];
-  const reward = ingredient.score * 3; // 주문 보너스
-  
-  orders.push({
-    targetLevel,
-    reward,
-    timeLeft: 60 // 60초
-  });
-  
-  renderOrders();
 }
 
 function startOrderTimer() {
@@ -429,41 +573,33 @@ function startOrderTimer() {
   orderTimer = setInterval(() => {
     if (gameOver) return;
     
-    let hasExpired = false;
-    
     orders.forEach(order => {
       order.timeLeft--;
-      if (order.timeLeft <= 0) {
-        hasExpired = true;
-      }
     });
     
-    // 만료된 주문 제거
     const prevLength = orders.length;
     orders = orders.filter(o => o.timeLeft > 0);
     
     if (orders.length < prevLength) {
-      // 주문 실패 시 콤보 리셋
       combo = 0;
       renderOrders();
     }
     
-    // 타이머 바 업데이트
     if (orders.length > 0) {
-      const maxTime = 60;
+      const maxTime = 90;
       const minTime = Math.min(...orders.map(o => o.timeLeft));
       const pct = (minTime / maxTime) * 100;
       timerFillEl.style.width = pct + '%';
       
-      // 위험 상태
       if (pct < 30) {
         timerFillEl.style.background = 'linear-gradient(90deg, #ef4444 0%, #f87171 100%)';
       } else {
         timerFillEl.style.background = 'linear-gradient(90deg, var(--accent) 0%, #ffab76 100%)';
       }
+    } else {
+      timerFillEl.style.width = '100%';
     }
     
-    // 새 주문 생성 (일정 주기마다)
     if (orders.length < 2) {
       generateOrder();
     }
@@ -472,98 +608,13 @@ function startOrderTimer() {
   }, 1000);
 }
 
-function placeNextIngredient() {
-  if (gameOver) return;
-  
-  const emptyCells = [];
-  grid.forEach((cell, idx) => {
-    if (cell === null) emptyCells.push(idx);
-  });
-  
-  if (emptyCells.length === 0) {
-    checkGameOver();
-    return;
-  }
-  
-  // 랜덤 빈 셀에 배치
-  const targetIdx = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-  grid[targetIdx] = nextIngredient;
-  
-  // 새 재료 설정
-  nextIngredient = getRandomIngredientLevel();
-  
-  // 콤보 리셋 (새 재료 배치 시)
-  combo = 0;
-  
-  renderGrid();
-  renderNextIngredient();
-  
-  const cells = gridEl.querySelectorAll('.cell');
-  cells[targetIdx].classList.add('new-item');
-  
-  // 배치 후 자동 머지 체크
-  setTimeout(() => checkAutoMerge(targetIdx), 100);
-  
-  setTimeout(() => checkGameOver(), 200);
-}
-
-// ===== 드래그 앤 드롭 =====
-let dragFromIdx = null;
-
-function handleDragStart(e, idx) {
-  dragFromIdx = idx;
-  e.dataTransfer.setData('text/plain', idx.toString());
-  e.dataTransfer.effectAllowed = 'move';
-}
-
-function handleDrop(e, toIdx) {
-  e.preventDefault();
-  
-  const data = e.dataTransfer.getData('text/plain');
-  
-  if (data === 'next') {
-    // 다음 재료를 특정 위치에 배치
-    if (grid[toIdx] === null && !gameOver) {
-      grid[toIdx] = nextIngredient;
-      nextIngredient = getRandomIngredientLevel();
-      combo = 0;
-      renderGrid();
-      renderNextIngredient();
-      
-      const cells = gridEl.querySelectorAll('.cell');
-      cells[toIdx].classList.add('new-item');
-      
-      setTimeout(() => checkAutoMerge(toIdx), 100);
-      setTimeout(() => checkGameOver(), 200);
-    }
-    return;
-  }
-  
-  const fromIdx = parseInt(data);
-  if (isNaN(fromIdx)) return;
-  
-  const fromLevel = grid[fromIdx];
-  const toLevel = grid[toIdx];
-  
-  if (fromLevel === null) return;
-  
-  if (toLevel === null) {
-    // 빈 칸으로 이동
-    moveItem(fromIdx, toIdx);
-  } else if (fromLevel === toLevel && fromLevel < ingredients.length - 1) {
-    // 머지
-    mergeItems(fromIdx, toIdx);
-  }
-}
-
 // ===== 게임 상태 =====
 function checkLevelUp() {
-  // 점수에 따라 레벨업
   const newLevel = Math.floor(score / 200) + 1;
   if (newLevel > level) {
     level = newLevel;
     updateLevel();
-    showComboPopup(0, `레벨 ${level}!`);
+    showComboPopup(0, `⭐ 레벨 ${level}!`);
   }
 }
 
@@ -571,7 +622,6 @@ function checkGameOver() {
   const emptyCells = grid.filter(cell => cell === null).length;
   
   if (emptyCells === 0) {
-    // 이동 가능한 머지가 있는지 체크
     let canMerge = false;
     
     for (let i = 0; i < GRID_SIZE; i++) {
@@ -580,7 +630,6 @@ function checkGameOver() {
       const row = Math.floor(i / GRID_COLS);
       const col = i % GRID_COLS;
       
-      // 인접 셀 체크
       const neighbors = [];
       if (row > 0) neighbors.push(i - GRID_COLS);
       if (row < GRID_ROWS - 1) neighbors.push(i + GRID_COLS);
@@ -588,7 +637,7 @@ function checkGameOver() {
       if (col < GRID_COLS - 1) neighbors.push(i + 1);
       
       for (const nIdx of neighbors) {
-        if (grid[nIdx] === grid[i] && grid[i] < ingredients.length - 1) {
+        if (grid[nIdx] === grid[i]) {
           canMerge = true;
           break;
         }
@@ -596,7 +645,7 @@ function checkGameOver() {
       if (canMerge) break;
     }
     
-    if (!canMerge) {
+    if (!canMerge && cookingSlotsItems.every(i => i === null)) {
       gameOver = true;
       clearInterval(orderTimer);
       showGameOver();
@@ -605,23 +654,19 @@ function checkGameOver() {
 }
 
 function showGameOver() {
-  gameOverMsgEl.textContent = `레벨 ${level}에 도달했어요!`;
+  gameOverMsgEl.textContent = `레벨 ${level}, ${customersServed}명 손님 응대 완료!`;
   finalScoreEl.textContent = score;
   overlayEl.classList.remove('hidden');
 }
 
 // ===== 시각 효과 =====
-function showFloatingScore(element, points, isOrder = false) {
+function showFloatingScore(element, text, isGold = false) {
   const rect = element.getBoundingClientRect();
   
   const popup = document.createElement('div');
   popup.className = 'float-score';
-  popup.textContent = (isOrder ? '🎉 ' : '+') + points;
-  
-  if (isOrder) {
-    popup.style.color = 'var(--accent-green)';
-    popup.style.fontSize = '1.5rem';
-  }
+  if (isGold) popup.classList.add('gold');
+  popup.textContent = text;
   
   popup.style.left = rect.left + rect.width / 2 + 'px';
   popup.style.top = rect.top + 'px';
@@ -645,14 +690,9 @@ function showComboPopup(comboCount, customText = null) {
 restartBtn.addEventListener('click', init);
 restartOverlayBtn.addEventListener('click', init);
 
-// 키보드 단축키
 document.addEventListener('keydown', (e) => {
   if (e.key === 'r' || e.key === 'R') {
     init();
-  }
-  if (e.key === ' ') {
-    e.preventDefault();
-    placeNextIngredient();
   }
 });
 

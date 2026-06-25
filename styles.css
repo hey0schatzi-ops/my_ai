@@ -9,9 +9,12 @@
   --accent: #ff6b35;
   --accent-dark: #cc4a1a;
   --accent-green: #4caf50;
+  --accent-blue: #2196f3;
+  --accent-purple: #9c27b0;
   --board-bg: #f5e6d3;
   --board-grid: #e8d5be;
   --shadow: rgba(0, 0, 0, 0.3);
+  --gold: #ffd700;
 }
 
 * {
@@ -56,7 +59,7 @@ button:active {
 }
 
 .game-shell {
-  width: min(100%, 900px);
+  width: min(100%, 1100px);
 }
 
 /* ===== TOPBAR ===== */
@@ -110,6 +113,15 @@ h1 {
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
+.score-item.gold-display {
+  border-color: var(--gold);
+  background: linear-gradient(180deg, #4a3510 0%, #6b4d1a 100%);
+}
+
+.score-item.gold-display strong {
+  color: var(--gold);
+}
+
 .score-item span {
   display: block;
   color: var(--muted);
@@ -130,21 +142,14 @@ h1 {
 /* ===== GAME LAYOUT ===== */
 .game-layout {
   display: grid;
-  grid-template-columns: 180px 1fr 180px;
+  grid-template-columns: 200px 1fr 200px;
   gap: 16px;
   align-items: start;
 }
 
-@media (max-width: 800px) {
+@media (max-width: 900px) {
   .game-layout {
     grid-template-columns: 1fr;
-  }
-  
-  .order-panel,
-  .info-panel {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
   }
 }
 
@@ -184,9 +189,10 @@ h1 {
   position: relative;
 }
 
-.order-card.completed {
-  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+.order-card.can-serve {
   border-color: var(--accent-green);
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.4);
+  animation: canServePulse 1s infinite;
 }
 
 .order-emoji {
@@ -205,6 +211,12 @@ h1 {
   font-size: 0.7rem;
   color: var(--accent);
   font-weight: 700;
+  margin-top: 2px;
+}
+
+.order-customer {
+  font-size: 0.65rem;
+  color: #888;
   margin-top: 2px;
 }
 
@@ -233,6 +245,13 @@ h1 {
   background: linear-gradient(90deg, var(--accent) 0%, #ffab76 100%);
   border-radius: 4px;
   transition: width 0.3s ease;
+}
+
+/* ===== BOARD SECTION ===== */
+.board-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 /* ===== GAME BOARD ===== */
@@ -330,6 +349,142 @@ h1 {
   border-radius: 4px;
 }
 
+/* ===== BOTTOM PANEL ===== */
+.bottom-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 700px) {
+  .bottom-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== GENERATORS ===== */
+.generators {
+  background: linear-gradient(180deg, var(--panel) 0%, rgba(61, 36, 22, 0.8) 100%);
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.generators-container {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+@media (max-width: 500px) {
+  .generators-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.generator {
+  background: linear-gradient(145deg, #fff9f2 0%, #f0e0cc 100%);
+  border: 2px solid #d4b896;
+  border-radius: 12px;
+  padding: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.generator:hover {
+  transform: scale(1.05);
+  border-color: var(--accent);
+}
+
+.generator:active {
+  transform: scale(0.95);
+}
+
+.generator.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.generator-emoji {
+  font-size: 1.8rem;
+  display: block;
+}
+
+.generator-name {
+  font-size: 0.6rem;
+  color: #5c3a25;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.generator-cost {
+  font-size: 0.6rem;
+  color: var(--gold);
+  font-weight: 800;
+}
+
+/* ===== COOKING STATION ===== */
+.cooking-station {
+  background: linear-gradient(180deg, var(--panel) 0%, rgba(61, 36, 22, 0.8) 100%);
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.cooking-station-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.cooking-slots {
+  display: flex;
+  gap: 8px;
+}
+
+.cooking-slot {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(145deg, #fff9f2 0%, #f0e0cc 100%);
+  border: 2px dashed #d4b896;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cooking-slot:hover {
+  border-color: var(--accent);
+  background: linear-gradient(145deg, #fff 0%, #ffe8d6 100%);
+}
+
+.cooking-slot.filled {
+  border-style: solid;
+  border-color: var(--accent-green);
+}
+
+.cook-btn {
+  background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+  color: white;
+  padding: 10px 24px;
+  font-size: 1rem;
+  box-shadow: 0 4px 12px rgba(255, 68, 68, 0.4);
+}
+
+.cook-btn:hover {
+  background: linear-gradient(135deg, #ff6666 0%, #ee2222 100%);
+}
+
+.cook-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ===== OVERLAY ===== */
 .overlay {
   position: absolute;
@@ -386,63 +541,24 @@ h1 {
   box-shadow: 0 4px 16px rgba(255, 107, 53, 0.4);
 }
 
-/* ===== NEXT INGREDIENT ===== */
-.next-ingredient {
-  background: linear-gradient(145deg, #fff9f2 0%, #f0e0cc 100%);
-  border: 2px solid var(--line);
-  border-radius: 12px;
-  padding: 20px;
-  text-align: center;
-  min-height: 80px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: grab;
-  transition: all 0.2s ease;
-}
-
-.next-ingredient:hover {
-  transform: scale(1.05);
-  border-color: var(--accent);
-}
-
-.next-ingredient:active {
-  cursor: grabbing;
-}
-
-.next-emoji {
-  font-size: 3rem;
-  margin-bottom: 8px;
-}
-
-.next-name {
-  font-size: 0.85rem;
-  color: #5c3a25;
-  font-weight: 700;
-}
-
 /* ===== RECIPE LIST ===== */
-.recipe-book {
-  margin-top: 16px;
-}
-
 .recipe-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 200px;
+  max-height: 300px;
   overflow-y: auto;
 }
 
 .recipe-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   padding: 6px 8px;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
+  flex-wrap: wrap;
 }
 
 .recipe-arrow {
@@ -451,7 +567,31 @@ h1 {
 }
 
 .recipe-emoji {
-  font-size: 1.1rem;
+  font-size: 1rem;
+}
+
+.recipe-name {
+  color: var(--muted);
+  font-size: 0.65rem;
+}
+
+/* ===== TIP BOX ===== */
+.tip-box {
+  margin-top: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.tip-box p {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.tip-box p:last-child {
+  margin-bottom: 0;
 }
 
 /* ===== CONTROLS ===== */
@@ -492,6 +632,10 @@ h1 {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   animation: floatUp 1s ease-out forwards;
   z-index: 1000;
+}
+
+.float-score.gold {
+  color: var(--gold);
 }
 
 /* ===== COMBO POPUP ===== */
@@ -545,6 +689,15 @@ h1 {
   }
 }
 
+@keyframes canServePulse {
+  0%, 100% { 
+    box-shadow: 0 0 12px rgba(76, 175, 80, 0.4);
+  }
+  50% { 
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.8);
+  }
+}
+
 @keyframes floatUp {
   0% { 
     transform: translateY(0);
@@ -572,7 +725,7 @@ h1 {
 }
 
 /* ===== RESPONSIVE ===== */
-@media (max-width: 800px) {
+@media (max-width: 900px) {
   .app {
     padding: 8px;
   }
@@ -584,11 +737,7 @@ h1 {
 
   .scoreboard {
     justify-content: center;
-  }
-
-  .score-item {
-    min-width: 70px;
-    padding: 6px 10px;
+    flex-wrap: wrap;
   }
 
   .controls {
@@ -598,23 +747,9 @@ h1 {
   .controls button {
     width: 100%;
   }
-
-  .game-layout {
-    gap: 12px;
-  }
-
-  .order-panel,
-  .info-panel {
-    padding: 12px;
-  }
 }
 
 @media (max-width: 500px) {
-  .scoreboard {
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
   .score-item {
     min-width: 60px;
     flex: 1;
@@ -622,5 +757,9 @@ h1 {
 
   h1 {
     font-size: 1.5rem;
+  }
+
+  .generators-container {
+    grid-template-columns: repeat(3, 1fr);
   }
 }

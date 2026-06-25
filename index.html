@@ -15,6 +15,10 @@
             <h1>머지 레스토랑</h1>
           </div>
           <div class="scoreboard">
+            <div class="score-item gold-display">
+              <span>💰 골드</span>
+              <strong id="gold">100</strong>
+            </div>
             <div class="score-item">
               <span>점수</span>
               <strong id="score">0</strong>
@@ -31,39 +35,60 @@
         </header>
 
         <div class="game-layout">
-          <!-- 주문 패널 -->
+          <!-- 왼쪽: 손님 주문 -->
           <aside class="order-panel">
-            <h3 class="panel-title">📋 주문서</h3>
+            <h3 class="panel-title">👤 손님 주문</h3>
             <div id="orders" class="orders-container"></div>
             <div class="order-timer">
-              <span>다음 주문까지</span>
+              <span>다음 손님까지</span>
               <div class="timer-bar">
                 <div id="timerFill" class="timer-fill"></div>
               </div>
             </div>
           </aside>
 
-          <!-- 게임 보드 -->
-          <div class="board-wrap">
-            <div id="grid" class="grid"></div>
-            <div id="overlay" class="overlay hidden">
-              <h2>🍽️ 영업 종료!</h2>
-              <p id="gameOverMsg">주방이 가득 찼어요!</p>
-              <div class="final-score">
-                <span>최종 점수</span>
-                <strong id="finalScore">0</strong>
+          <!-- 중앙: 게임 보드 -->
+          <div class="board-section">
+            <div class="board-wrap">
+              <div id="grid" class="grid"></div>
+              <div id="overlay" class="overlay hidden">
+                <h2>🍽️ 영업 종료!</h2>
+                <p id="gameOverMsg">주방이 가득 찼어요!</p>
+                <div class="final-score">
+                  <span>최종 점수</span>
+                  <strong id="finalScore">0</strong>
+                </div>
+                <button id="restartOverlay" type="button">🔄 다시 시작</button>
               </div>
-              <button id="restartOverlay" type="button">🔄 다시 시작</button>
+            </div>
+
+            <!-- 하단: 생성기 & 조리대 -->
+            <div class="bottom-panel">
+              <div class="generators">
+                <h3 class="panel-title">🏪 상점</h3>
+                <div id="generators" class="generators-container"></div>
+              </div>
+              <div class="cooking-station">
+                <h3 class="panel-title">🍳 조리대</h3>
+                <div id="cookingStation" class="cooking-station-area">
+                  <div class="cooking-slots">
+                    <div class="cooking-slot" data-slot="0"></div>
+                    <div class="cooking-slot" data-slot="1"></div>
+                    <div class="cooking-slot" data-slot="2"></div>
+                  </div>
+                  <button id="cookBtn" class="cook-btn">🔥 요리하기!</button>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- 다음 재료 & 정보 -->
+          <!-- 오른쪽: 레시피 & 정보 -->
           <aside class="info-panel">
-            <h3 class="panel-title">🧺 다음 재료</h3>
-            <div id="nextIngredient" class="next-ingredient"></div>
-            <div class="recipe-book">
-              <h3 class="panel-title">📖 레시피</h3>
-              <div id="recipeList" class="recipe-list"></div>
+            <h3 class="panel-title">📖 레시피</h3>
+            <div id="recipeList" class="recipe-list"></div>
+            <div class="tip-box">
+              <p>💡 재료를 클릭해서 조리대에 놓으세요!</p>
+              <p>🔥 조합이 맞으면 요리가 완성됩니다!</p>
             </div>
           </aside>
         </div>
@@ -71,7 +96,7 @@
         <footer class="controls">
           <button id="restart" type="button">🔄 새 게임</button>
           <div class="tip">
-            <span>💡 재료를 드래그해서 이동! 같은 재료끼리 합쳐서 요리를 완성하세요!</span>
+            <span>💡 상점에서 재료 구매 → 그리드에 배치 → 조리대에서 요리 → 손님에게 제공!</span>
           </div>
         </footer>
       </section>
