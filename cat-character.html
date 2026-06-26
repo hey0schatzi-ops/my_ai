@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>귀여운 고양이 캐릭터</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .container {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .cat-container {
+            position: relative;
+            width: 300px;
+            height: 350px;
+            margin: 0 auto;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .cat-body {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 180px;
+            background: #ff9a56;
+            border-radius: 50% 50% 45% 45%;
+            box-shadow: inset -20px -20px 40px rgba(0,0,0,0.1);
+        }
+
+        .cat-head {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 180px;
+            height: 160px;
+            background: #ff9a56;
+            border-radius: 50% 50% 40% 40%;
+            box-shadow: inset -15px -15px 30px rgba(0,0,0,0.1);
+        }
+
+        /* 귀 */
+        .ear {
+            position: absolute;
+            top: 0px;
+            width: 0;
+            height: 0;
+            border-left: 35px solid transparent;
+            border-right: 35px solid transparent;
+            border-bottom: 60px solid #ff9a56;
+        }
+
+        .ear-left {
+            left: 30px;
+            transform: rotate(-15deg);
+        }
+
+        .ear-right {
+            right: 30px;
+            transform: rotate(15deg);
+        }
+
+        .ear-inner {
+            position: absolute;
+            top: 15px;
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-bottom: 35px solid #ffb8d0;
+        }
+
+        .ear-left .ear-inner {
+            left: -20px;
+        }
+
+        .ear-right .ear-inner {
+            right: -20px;
+        }
+
+        /* 눈 */
+        .eyes {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 40px;
+        }
+
+        .eye {
+            position: relative;
+            width: 35px;
+            height: 35px;
+            background: #2d2d2d;
+            border-radius: 50%;
+            animation: blink 4s infinite;
+        }
+
+        @keyframes blink {
+            0%, 90%, 100% { transform: scaleY(1); }
+            95% { transform: scaleY(0.1); }
+        }
+
+        .eye-shine {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .eye-shine-small {
+            position: absolute;
+            bottom: 10px;
+            right: 8px;
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        /* 코 */
+        .nose {
+            position: absolute;
+            top: 95px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 15px;
+            height: 12px;
+            background: #ff6b8a;
+            border-radius: 50% 50% 50% 50% / 30% 30% 70% 70%;
+        }
+
+        /* 입 */
+        .mouth {
+            position: absolute;
+            top: 105px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 20px;
+        }
+
+        .mouth::before,
+        .mouth::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 15px;
+            border-bottom: 3px solid #2d2d2d;
+            border-radius: 0 0 50% 50%;
+        }
+
+        .mouth::before {
+            left: 0;
+        }
+
+        .mouth::after {
+            right: 0;
+        }
+
+        /* 수염 */
+        .whiskers {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 180px;
+        }
+
+        .whisker {
+            position: absolute;
+            width: 50px;
+            height: 2px;
+            background: #2d2d2d;
+            border-radius: 2px;
+        }
+
+        .whisker-left-1 { left: 0; top: 0; transform: rotate(-10deg); }
+        .whisker-left-2 { left: -5px; top: 12px; transform: rotate(0deg); }
+        .whisker-left-3 { left: 0; top: 24px; transform: rotate(10deg); }
+
+        .whisker-right-1 { right: 0; top: 0; transform: rotate(10deg); }
+        .whisker-right-2 { right: -5px; top: 12px; transform: rotate(0deg); }
+        .whisker-right-3 { right: 0; top: 24px; transform: rotate(-10deg); }
+
+        /* 볼터치 */
+        .blush {
+            position: absolute;
+            top: 85px;
+            width: 25px;
+            height: 15px;
+            background: #ffb8d0;
+            border-radius: 50%;
+            opacity: 0.7;
+        }
+
+        .blush-left {
+            left: 25px;
+        }
+
+        .blush-right {
+            right: 25px;
+        }
+
+        /* 앞발 */
+        .paw {
+            position: absolute;
+            bottom: 20px;
+            width: 50px;
+            height: 35px;
+            background: #ff9a56;
+            border-radius: 50%;
+            box-shadow: inset -5px -5px 10px rgba(0,0,0,0.1);
+        }
+
+        .paw-left {
+            left: 55px;
+        }
+
+        .paw-right {
+            right: 55px;
+        }
+
+        .paw-pad {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 15px;
+            background: #ffb8d0;
+            border-radius: 50%;
+        }
+
+        /* 꼬리 */
+        .tail {
+            position: absolute;
+            bottom: 50px;
+            right: 20px;
+            width: 80px;
+            height: 25px;
+            background: #ff9a56;
+            border-radius: 50px 50px 0 50%;
+            transform-origin: left center;
+            animation: wag 1s ease-in-out infinite;
+        }
+
+        @keyframes wag {
+            0%, 100% { transform: rotate(-10deg); }
+            50% { transform: rotate(10deg); }
+        }
+
+        /* 줄무늬 */
+        .stripe {
+            position: absolute;
+            background: #e8873f;
+            border-radius: 10px;
+        }
+
+        .stripe-1 {
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 8px;
+        }
+
+        .stripe-2 {
+            top: 65px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 6px;
+        }
+
+        .stripe-3 {
+            top: 78px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 5px;
+        }
+
+        h1 {
+            color: white;
+            margin-top: 30px;
+            font-size: 2em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .speech-bubble {
+            position: absolute;
+            top: -30px;
+            right: -50px;
+            background: white;
+            padding: 15px 25px;
+            border-radius: 20px;
+            font-size: 1.2em;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            animation: pop 2s infinite;
+        }
+
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 30px;
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 15px solid white;
+        }
+
+        @keyframes pop {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .sparkle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            animation: sparkle 1.5s infinite;
+        }
+
+        .sparkle::before,
+        .sparkle::after {
+            content: '';
+            position: absolute;
+            background: #ffd700;
+        }
+
+        .sparkle::before {
+            width: 4px;
+            height: 20px;
+            left: 8px;
+            border-radius: 2px;
+        }
+
+        .sparkle::after {
+            width: 20px;
+            height: 4px;
+            top: 8px;
+            border-radius: 2px;
+        }
+
+        .sparkle-1 { top: 20px; left: 20px; animation-delay: 0s; }
+        .sparkle-2 { top: 50px; right: 30px; animation-delay: 0.5s; }
+        .sparkle-3 { bottom: 80px; left: 40px; animation-delay: 1s; }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 1; transform: scale(1) rotate(0deg); }
+            50% { opacity: 0.5; transform: scale(0.5) rotate(45deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="cat-container">
+            <!-- 반짝임 효과 -->
+            <div class="sparkle sparkle-1"></div>
+            <div class="sparkle sparkle-2"></div>
+            <div class="sparkle sparkle-3"></div>
+
+            <!-- 말풍선 -->
+            <div class="speech-bubble">냥~! 🐱</div>
+
+            <!-- 고양이 몸체 -->
+            <div class="cat-body">
+                <div class="tail"></div>
+            </div>
+
+            <!-- 고양이 머리 -->
+            <div class="cat-head">
+                <!-- 귀 -->
+                <div class="ear ear-left">
+                    <div class="ear-inner"></div>
+                </div>
+                <div class="ear ear-right">
+                    <div class="ear-inner"></div>
+                </div>
+
+                <!-- 줄무늬 -->
+                <div class="stripe stripe-1"></div>
+                <div class="stripe stripe-2"></div>
+                <div class="stripe stripe-3"></div>
+
+                <!-- 눈 -->
+                <div class="eyes">
+                    <div class="eye">
+                        <div class="eye-shine"></div>
+                        <div class="eye-shine-small"></div>
+                    </div>
+                    <div class="eye">
+                        <div class="eye-shine"></div>
+                        <div class="eye-shine-small"></div>
+                    </div>
+                </div>
+
+                <!-- 코 -->
+                <div class="nose"></div>
+
+                <!-- 입 -->
+                <div class="mouth"></div>
+
+                <!-- 볼터치 -->
+                <div class="blush blush-left"></div>
+                <div class="blush blush-right"></div>
+
+                <!-- 수염 -->
+                <div class="whiskers">
+                    <div class="whisker whisker-left-1"></div>
+                    <div class="whisker whisker-left-2"></div>
+                    <div class="whisker whisker-left-3"></div>
+                    <div class="whisker whisker-right-1"></div>
+                    <div class="whisker whisker-right-2"></div>
+                    <div class="whisker whisker-right-3"></div>
+                </div>
+            </div>
+
+            <!-- 앞발 -->
+            <div class="paw paw-left">
+                <div class="paw-pad"></div>
+            </div>
+            <div class="paw paw-right">
+                <div class="paw-pad"></div>
+            </div>
+        </div>
+
+        <h1>안녕하세요, 냥이입니다! 🐾</h1>
+    </div>
+
+    <script>
+        // 말풍선 텍스트 변경
+        const speeches = ['냥~! 🐱', '안냥! 😺', '귀여워? 😸', '놀자! 🐾', '사랑해! 💕'];
+        let speechIndex = 0;
+        const speechBubble = document.querySelector('.speech-bubble');
+
+        setInterval(() => {
+            speechIndex = (speechIndex + 1) % speeches.length;
+            speechBubble.textContent = speeches[speechIndex];
+        }, 2000);
+
+        // 클릭 이벤트
+        document.querySelector('.cat-container').addEventListener('click', function() {
+            this.style.animation = 'none';
+            setTimeout(() => {
+                this.style.animation = 'float 3s ease-in-out infinite';
+            }, 10);
+            speechBubble.textContent = '먀아~! 😻';
+        });
+    </script>
+</body>
+</html>

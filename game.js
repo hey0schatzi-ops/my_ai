@@ -1,700 +1,474 @@
-/**
- * 머지 레스토랑 - Merge Cooking Game (v2.0)
- * 생성기, 조리대, 손님 주문 시스템 추가
- */
+const canvas = document.querySelector("#game");
+const ctx = canvas.getContext("2d");
+const nextCanvas = document.querySelector("#next");
+const nextCtx = nextCanvas.getContext("2d");
+const scoreEl = document.querySelector("#score");
+const bestEl = document.querySelector("#best");
+const overlay = document.querySelector("#overlay");
+const restartBtn = document.querySelector("#restart");
+const restartOverlayBtn = document.querySelector("#restartOverlay");
+const dropBtn = document.querySelector("#drop");
 
-// ===== DOM 요소 =====
-const gridEl = document.getElementById('grid');
-const scoreEl = document.getElementById('score');
-const bestEl = document.getElementById('best');
-const levelEl = document.getElementById('level');
-const goldEl = document.getElementById('gold');
-const ordersEl = document.getElementById('orders');
-const generatorsEl = document.getElementById('generators');
-const recipeListEl = document.getElementById('recipeList');
-const overlayEl = document.getElementById('overlay');
-const gameOverMsgEl = document.getElementById('gameOverMsg');
-const finalScoreEl = document.getElementById('finalScore');
-const restartBtn = document.getElementById('restart');
-const restartOverlayBtn = document.getElementById('restartOverlay');
-const timerFillEl = document.getElementById('timerFill');
-const cookBtn = document.getElementById('cookBtn');
-const cookingSlots = document.querySelectorAll('.cooking-slot');
 
-// ===== 게임 설정 =====
-const GRID_COLS = 5;
-const GRID_ROWS = 4;
-const GRID_SIZE = GRID_COLS * GRID_ROWS;
-const COOKING_SLOTS_COUNT = 3;
+const W = canvas.width;
+const H = canvas.height;
+const wall = 18;
+const floor = H - 18;
+const dangerLine = 92;
+const gravity = 0.42;
+const bounce = 0.32;
+const friction = 0.986;
 
-// ===== 생성기 데이터 =====
-const generators = [
-  { id: 'veggie', emoji: '🧺', name: '채소', cost: 5, items: ['lettuce', 'tomato', 'onion', 'carrot', 'potato'] },
-  { id: 'fruit', emoji: '🍎', name: '과일', cost: 8, items: ['apple', 'grape', 'orange', 'watermelon'] },
-  { id: 'meat', emoji: '🥩', name: '고기', cost: 15, items: ['chicken', 'beef', 'pork'] },
-  { id: 'dairy', emoji: '🧈', name: '유제품', cost: 10, items: ['milk', 'cheese', 'butter', 'egg'] },
-  { id: 'bakery', emoji: '🍞', name: '빵', cost: 7, items: ['bread', 'rice', 'flour'] },
+const fruits = [
+  { name: "체리", radius: 16, color: "#ff4d69", accent: "#ffc0cb", score: 2, sprite: 0 },
+  { name: "딸기", radius: 22, color: "#ff3151", accent: "#ffe06d", score: 4, sprite: 1 },
+  { name: "포도", radius: 28, color: "#8b5cf6", accent: "#d9c3ff", score: 8, sprite: 2 },
+  { name: "귤", radius: 35, color: "#ff9f1c", accent: "#ffe08a", score: 16, sprite: 3 },
+  { name: "감", radius: 43, color: "#ff6b35", accent: "#ffd166", score: 32, sprite: 4 },
+  { name: "사과", radius: 52, color: "#e63946", accent: "#ffb3ba", score: 64, sprite: 5 },
+  { name: "배", radius: 62, color: "#c5d86d", accent: "#f6ffb5", score: 128, sprite: 6 },
+  { name: "복숭아", radius: 73, color: "#ffb4a2", accent: "#fff0c7", score: 256, sprite: 7 },
+  { name: "멜론", radius: 86, color: "#6bc46d", accent: "#cfffc8", score: 512, sprite: 8 },
+  { name: "수박", radius: 102, color: "#2eaf5f", accent: "#b6f3a4", score: 1024, sprite: 9 },
 ];
 
-// ===== 재료 데이터 =====
-const ingredients = {
-  // 채소
-  lettuce: { emoji: '🥬', name: '양상추', category: 'veggie', tier: 1 },
-  tomato: { emoji: '🍅', name: '토마토', category: 'veggie', tier: 1 },
-  onion: { emoji: '🧅', name: '양파', category: 'veggie', tier: 1 },
-  carrot: { emoji: '🥕', name: '당근', category: 'veggie', tier: 1 },
-  
-  // 과일
-  apple: { emoji: '🍎', name: '사과', category: 'fruit', tier: 1 },
-  grape: { emoji: '🍇', name: '포도', category: 'fruit', tier: 1 },
-  orange: { emoji: '🍊', name: '귤', category: 'fruit', tier: 1 },
-  watermelon: { emoji: '🍉', name: '수박', category: 'fruit', tier: 2 },
-  
-  // 고기
-  chicken: { emoji: '🍗', name: '닭고기', category: 'meat', tier: 1 },
-  beef: { emoji: '🥩', name: '소고기', category: 'meat', tier: 2 },
-  pork: { emoji: '🥓', name: '돼지고기', category: 'meat', tier: 1 },
-  
-  // 유제품
-  milk: { emoji: '🥛', name: '우유', category: 'dairy', tier: 1 },
-  cheese: { emoji: '🧀', name: '치즈', category: 'dairy', tier: 1 },
-  butter: { emoji: '🧈', name: '버터', category: 'dairy', tier: 1 },
-  
-  // 빵/곡물
-  bread: { emoji: '🍞', name: '빵', category: 'bakery', tier: 1 },
-  rice: { emoji: '🍚', name: '쌀', category: 'bakery', tier: 1 },
-  flour: { emoji: '🌾', name: '밀', category: 'bakery', tier: 1 },
-  
-  // 기타
-  potato: { emoji: '🥔', name: '감자', category: 'veggie', tier: 1 },
-  egg: { emoji: '🥚', name: '달걀', category: 'dairy', tier: 1 },
-};
+let pieces;
+let nextType;
+let previewX;
+let score;
+let best = Number(localStorage.getItem("suika-best") || 0);
+let gameOver;
+let canDrop;
+let lastTime;
+let idSeed;
+let particles = [];
+let screenShake = 0;
+let scorePopups = [];
 
-// ===== 요리 레시피 =====
-// 재료 조합 → 요리 (순서 무관)
-const recipes = [
-  // 간단한 요리
-  { ingredients: ['lettuce', 'tomato'], result: 'salad', resultEmoji: '🥗', resultName: '샐러드', score: 20, gold: 15 },
-  { ingredients: ['tomato', 'onion'], result: 'sauce', resultEmoji: '🍝', resultName: '토마토소스', score: 25, gold: 18 },
-  { ingredients: ['lettuce', 'cheese'], result: 'cheeseSalad', resultEmoji: '🥗', resultName: '치즈샐러드', score: 30, gold: 22 },
-  { ingredients: ['bread', 'cheese'], result: 'cheeseToast', resultEmoji: '🧀', resultName: '치즈토스트', score: 28, gold: 20 },
-  { ingredients: ['bread', 'butter'], result: 'butterToast', resultEmoji: '🍞', resultName: '버터토스트', score: 22, gold: 16 },
-  { ingredients: ['apple', 'grape'], result: 'fruitSalad', resultEmoji: '🍓', resultName: '과일샐러드', score: 35, gold: 25 },
-  { ingredients: ['orange', 'watermelon'], result: 'fruitPlatter', resultEmoji: '🍹', resultName: '과일플래터', score: 45, gold: 35 },
-  { ingredients: ['milk', 'flour'], result: 'dough', resultEmoji: '🫓', resultName: '반죽', score: 15, gold: 12 },
-  { ingredients: ['rice', 'chicken'], result: 'chickenRice', resultEmoji: '🍛', resultName: '닭고기밥', score: 40, gold: 30 },
-  
-  // 중간 요리
-  { ingredients: ['bread', 'chicken', 'lettuce'], result: 'chickenSandwich', resultEmoji: '🥪', resultName: '닭고기샌드위치', score: 60, gold: 45 },
-  { ingredients: ['bread', 'beef', 'cheese'], result: 'burger', resultEmoji: '🍔', resultName: '햄버거', score: 80, gold: 60 },
-  { ingredients: ['bread', 'pork', 'cheese'], result: 'porkSandwich', resultEmoji: '🥪', resultName: '돼지고기샌드위치', score: 65, gold: 50 },
-  { ingredients: ['tomato', 'cheese', 'flour'], result: 'pizza', resultEmoji: '🍕', resultName: '피자', score: 90, gold: 70 },
-  { ingredients: ['flour', 'butter', 'milk'], result: 'cake', resultEmoji: '🎂', resultName: '케이크', score: 100, gold: 80 },
-  { ingredients: ['rice', 'beef', 'carrot'], result: 'beefBowl', resultEmoji: '🥘', resultName: '소고기덮밥', score: 75, gold: 55 },
-  { ingredients: ['chicken', 'onion', 'carrot'], result: 'chickenStew', resultEmoji: '🍲', resultName: '닭고기스튜', score: 70, gold: 52 },
-  
-  // 고급 요리
-  { ingredients: ['beef', 'potato', 'onion'], result: 'beefStew', resultEmoji: '🥘', resultName: '소고기스튜', score: 120, gold: 90 },
-  { ingredients: ['watermelon', 'grape', 'apple'], result: 'fruitBasket', resultEmoji: '🧺', resultName: '과일바구니', score: 150, gold: 120 },
-  { ingredients: ['bread', 'beef', 'cheese', 'lettuce'], result: 'deluxeBurger', resultEmoji: '🍔', resultName: '디럭스햄버거', score: 180, gold: 140 },
-  { ingredients: ['flour', 'butter', 'milk', 'cheese'], result: 'cheeseCake', resultEmoji: '🍰', resultName: '치즈케이크', score: 200, gold: 160 },
-];
+function randomStartType() {
+  return Math.floor(Math.random() * 5);
+}
 
-// ===== 손님 이름 =====
-const customerNames = ['김철수', '이영희', '박민수', '정수진', '홍길동', '최유리', '장현우', '강민지', '윤서준', '임하늘'];
-
-// ===== 게임 상태 =====
-let grid = [];
-let score = 0;
-let best = parseInt(localStorage.getItem('merge-restaurant-best-v2') || '0');
-let level = 1;
-let gold = 100;
-let selectedCell = null;
-let orders = [];
-let cookingSlotsItems = [null, null, null];
-let combo = 0;
-let gameOver = false;
-let orderTimer = null;
-let customersServed = 0;
-
-// ===== 초기화 =====
-function init() {
-  grid = new Array(GRID_SIZE).fill(null);
+function reset() {
+  pieces = [];
+  nextType = randomStartType();
+  previewX = W / 2;
   score = 0;
-  level = 1;
-  gold = 100;
-  selectedCell = null;
-  orders = [];
-  cookingSlotsItems = [null, null, null];
-  combo = 0;
   gameOver = false;
-  customersServed = 0;
-  
-  // 초기 재료 2개 배치 (무료)
-  placeRandomIngredient();
-  placeRandomIngredient();
-  
-  // 초기 주문 생성
-  generateOrder();
-  
-  // UI 업데이트
+  canDrop = true;
+  lastTime = performance.now();
+  idSeed = 1;
+  particles = [];
+  screenShake = 0;
+  scorePopups = [];
+  overlay.classList.add("hidden");
   updateScore();
-  updateLevel();
-  updateGold();
-  renderGrid();
-  renderGenerators();
-  renderCookingSlots();
-  renderOrders();
-  renderRecipes();
-  
-  overlayEl.classList.add('hidden');
-  
-  startOrderTimer();
-}
-
-// ===== 유틸리티 =====
-function placeRandomIngredient() {
-  const emptyCells = [];
-  grid.forEach((cell, idx) => {
-    if (cell === null) emptyCells.push(idx);
-  });
-  
-  if (emptyCells.length === 0) return false;
-  
-  const randomIdx = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-  const randomGenerator = generators[Math.floor(Math.random() * generators.length)];
-  const randomItem = randomGenerator.items[Math.floor(Math.random() * randomGenerator.items.length)];
-  
-  grid[randomIdx] = randomItem;
-  return true;
-}
-
-// ===== 렌더링 =====
-function renderGrid() {
-  gridEl.innerHTML = '';
-  
-  grid.forEach((itemId, idx) => {
-    const cell = document.createElement('div');
-    cell.className = 'cell';
-    cell.dataset.index = idx;
-    
-    if (itemId !== null) {
-      const ingredient = ingredients[itemId];
-      
-      const emoji = document.createElement('span');
-      emoji.className = 'cell-emoji';
-      emoji.textContent = ingredient.emoji;
-      cell.appendChild(emoji);
-    }
-    
-    if (selectedCell === idx) {
-      cell.classList.add('selected');
-    }
-    
-    cell.addEventListener('click', () => handleCellClick(idx));
-    
-    gridEl.appendChild(cell);
-  });
-}
-
-function renderGenerators() {
-  generatorsEl.innerHTML = '';
-  
-  generators.forEach(gen => {
-    const el = document.createElement('div');
-    el.className = 'generator';
-    if (gold < gen.cost) el.classList.add('disabled');
-    
-    el.innerHTML = `
-      <span class="generator-emoji">${gen.emoji}</span>
-      <span class="generator-name">${gen.name}</span>
-      <span class="generator-cost">💰${gen.cost}</span>
-    `;
-    
-    el.addEventListener('click', () => buyFromGenerator(gen));
-    generatorsEl.appendChild(el);
-  });
-}
-
-function renderCookingSlots() {
-  cookingSlots.forEach((slot, idx) => {
-    const itemId = cookingSlotsItems[idx];
-    if (itemId) {
-      slot.textContent = ingredients[itemId].emoji;
-      slot.classList.add('filled');
-    } else {
-      slot.textContent = '';
-      slot.classList.remove('filled');
-    }
-  });
-  
-  // 요리 버튼 활성화 체크
-  const canCook = checkCookingRecipe();
-  cookBtn.disabled = !canCook;
-}
-
-function renderOrders() {
-  ordersEl.innerHTML = '';
-  
-  orders.forEach((order, idx) => {
-    const card = document.createElement('div');
-    card.className = 'order-card';
-    
-    // 주문 요리를 만들 수 있는지 체크
-    const canServe = canServeOrder(order);
-    if (canServe) card.classList.add('can-serve');
-    
-    card.innerHTML = `
-      <span class="order-emoji">${order.emoji}</span>
-      <span class="order-name">${order.name}</span>
-      <span class="order-reward">💰${order.reward} +${order.score}점</span>
-      <span class="order-customer">${order.customer}</span>
-    `;
-    
-    if (canServe) {
-      card.addEventListener('click', () => serveOrder(idx));
-    }
-    
-    ordersEl.appendChild(card);
-  });
-  
-  if (orders.length === 0) {
-    ordersEl.innerHTML = '<p style="color: var(--muted); text-align: center; font-size: 0.8rem;">손님 대기 중...</p>';
-  }
-}
-
-function renderRecipes() {
-  recipeListEl.innerHTML = '';
-  
-  recipes.forEach(recipe => {
-    const item = document.createElement('div');
-    item.className = 'recipe-item';
-    
-    const ingredientEmojis = recipe.ingredients.map(id => ingredients[id].emoji).join(' + ');
-    
-    item.innerHTML = `
-      <span>${ingredientEmojis}</span>
-      <span class="recipe-arrow">→</span>
-      <span class="recipe-emoji">${recipe.resultEmoji}</span>
-      <span class="recipe-name">${recipe.resultName}</span>
-    `;
-    
-    recipeListEl.appendChild(item);
-  });
+  drawNext();
 }
 
 function updateScore() {
   scoreEl.textContent = score;
   best = Math.max(best, score);
   bestEl.textContent = best;
-  localStorage.setItem('merge-restaurant-best-v2', best.toString());
+  localStorage.setItem("suika-best", String(best));
 }
 
-function updateLevel() {
-  levelEl.textContent = level;
+function createPiece(type, x, y) {
+  return {
+    id: idSeed++,
+    type,
+    x,
+    y,
+    vx: 0,
+    vy: 0,
+    radius: fruits[type].radius,
+    merging: false,
+    born: performance.now(),
+  };
 }
 
-function updateGold() {
-  goldEl.textContent = gold;
-  renderGenerators();
+function dropPiece() {
+  if (!canDrop || gameOver) return;
+  const fruit = fruits[nextType];
+  pieces.push(createPiece(nextType, previewX, dangerLine - fruit.radius - 8));
+  nextType = randomStartType();
+  canDrop = false;
+  window.setTimeout(() => {
+    canDrop = true;
+  }, 520);
+  drawNext();
 }
 
-// ===== 생성기 =====
-function buyFromGenerator(generator) {
+function pointerX(event) {
+  const rect = canvas.getBoundingClientRect();
+  const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+  return ((clientX - rect.left) / rect.width) * W;
+}
+
+function movePreview(event) {
   if (gameOver) return;
-  if (gold < generator.cost) return;
-  
-  const emptyCells = [];
-  grid.forEach((cell, idx) => {
-    if (cell === null) emptyCells.push(idx);
-  });
-  
-  if (emptyCells.length === 0) {
-    alert('그리드가 가득 찼습니다!');
-    return;
-  }
-  
-  gold -= generator.cost;
-  updateGold();
-  
-  const randomItem = generator.items[Math.floor(Math.random() * generator.items.length)];
-  const targetIdx = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-  grid[targetIdx] = randomItem;
-  
-  renderGrid();
-  
-  const cells = gridEl.querySelectorAll('.cell');
-  cells[targetIdx].classList.add('new-item');
-  
-  showFloatingScore(cells[targetIdx], `-${generator.cost}💰`, true);
+  const radius = fruits[nextType].radius;
+  previewX = Math.max(wall + radius, Math.min(W - wall - radius, pointerX(event)));
 }
 
-// ===== 그리드 조작 =====
-function handleCellClick(idx) {
-  if (gameOver) return;
-  
-  const itemId = grid[idx];
-  
-  if (selectedCell === null) {
-    if (itemId !== null) {
-      selectedCell = idx;
-      renderGrid();
-    }
-  } else if (selectedCell === idx) {
-    selectedCell = null;
-    renderGrid();
-  } else {
-    const selectedItemId = grid[selectedCell];
-    
-    if (selectedItemId === null) {
-      if (itemId !== null) {
-        selectedCell = idx;
-        renderGrid();
-      }
-    } else if (itemId === null) {
-      // 빈 칸으로 이동
-      moveItem(selectedCell, idx);
-    } else if (selectedItemId === itemId) {
-      // 같은 재료 머지
-      mergeItems(selectedCell, idx);
-    } else {
-      // 다른 재료 - 선택 변경
-      selectedCell = idx;
-      renderGrid();
-    }
-  }
-}
-
-function moveItem(fromIdx, toIdx) {
-  grid[toIdx] = grid[fromIdx];
-  grid[fromIdx] = null;
-  selectedCell = null;
-  
-  renderGrid();
-  const cells = gridEl.querySelectorAll('.cell');
-  cells[toIdx].classList.add('new-item');
-}
-
-function mergeItems(fromIdx, toIdx) {
-  const itemId = grid[fromIdx];
-  const ingredient = ingredients[itemId];
-  
-  // 같은 카테고리이고 tier가 같으면 머지
-  // 간단하게: 같은 재료면 상위 티어로 업그레이드
-  grid[fromIdx] = null;
-  grid[toIdx] = itemId; // 같은 재료 유지 (티어 업그레이드는 추후)
-  selectedCell = null;
-  
-  // 점수 추가
-  const points = ingredient.tier * 5;
-  score += points;
-  combo++;
-  
-  if (combo > 1) {
-    const comboBonus = combo * 3;
-    score += comboBonus;
-    showComboPopup(combo);
-  }
-  
-  updateScore();
-  checkLevelUp();
-  
-  renderGrid();
-  const cells = gridEl.querySelectorAll('.cell');
-  cells[toIdx].classList.add('merging');
-  
-  showFloatingScore(cells[toIdx], `+${points}`);
-  
-  setTimeout(() => checkGameOver(), 200);
-}
-
-// ===== 조리대 =====
-function addToCookingSlot(itemId) {
-  const emptySlotIdx = cookingSlotsItems.indexOf(null);
-  if (emptySlotIdx === -1) return false;
-  
-  cookingSlotsItems[emptySlotIdx] = itemId;
-  renderCookingSlots();
-  return true;
-}
-
-function removeFromCookingSlot(idx) {
-  if (cookingSlotsItems[idx] === null) return;
-  
-  const itemId = cookingSlotsItems[idx];
-  cookingSlotsItems[idx] = null;
-  
-  // 그리드에 다시 배치
-  const emptyCells = [];
-  grid.forEach((cell, i) => {
-    if (cell === null) emptyCells.push(i);
-  });
-  
-  if (emptyCells.length > 0) {
-    const targetIdx = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-    grid[targetIdx] = itemId;
-    renderGrid();
-  }
-  
-  renderCookingSlots();
-}
-
-function checkCookingRecipe() {
-  const items = cookingSlotsItems.filter(i => i !== null);
-  if (items.length < 2) return null;
-  
-  for (const recipe of recipes) {
-    const recipeIngredients = [...recipe.ingredients].sort();
-    const slotIngredients = [...items].sort();
-    
-    if (recipeIngredients.length === slotIngredients.length &&
-        recipeIngredients.every((ing, idx) => ing === slotIngredients[idx])) {
-      return recipe;
-    }
-  }
-  
-  return null;
-}
-
-function cook() {
-  if (gameOver) return;
-  
-  const recipe = checkCookingRecipe();
-  if (!recipe) return;
-  
-  // 요리 완성!
-  score += recipe.score;
-  gold += recipe.gold;
-  
-  updateScore();
-  updateGold();
-  checkLevelUp();
-  
-  // 조리대 비우기
-  cookingSlotsItems = [null, null, null];
-  renderCookingSlots();
-  
-  showComboPopup(0, `🍳 ${recipe.resultName} 완성!`);
-  
-  // 주문 체크
-  checkOrdersForDish(recipe.result);
-}
-
-// 조리대 슬롯 클릭 이벤트
-cookingSlots.forEach((slot, idx) => {
-  slot.addEventListener('click', () => {
-    if (cookingSlotsItems[idx] !== null) {
-      removeFromCookingSlot(idx);
-    } else if (selectedCell !== null && grid[selectedCell] !== null) {
-      // 선택된 재료를 조리대로
-      const itemId = grid[selectedCell];
-      if (addToCookingSlot(itemId)) {
-        grid[selectedCell] = null;
-        selectedCell = null;
-        renderGrid();
-        renderCookingSlots();
-      }
-    }
-  });
+canvas.addEventListener("pointermove", movePreview);
+canvas.addEventListener("pointerdown", (event) => {
+  movePreview(event);
+  dropPiece();
 });
 
-cookBtn.addEventListener('click', cook);
+dropBtn.addEventListener("click", dropPiece);
+restartBtn.addEventListener("click", reset);
+restartOverlayBtn.addEventListener("click", reset);
 
-// ===== 주문 시스템 =====
-function generateOrder() {
-  if (orders.length >= 3) return;
-  
-  // 가능한 요리 중 랜덤 선택
-  const availableRecipes = recipes.filter(r => {
-    // 플레이어 레벨에 맞는 요리만
-    const totalTier = r.ingredients.reduce((sum, id) => sum + ingredients[id].tier, 0);
-    return totalTier <= level + 2;
-  });
-  
-  if (availableRecipes.length === 0) return;
-  
-  const recipe = availableRecipes[Math.floor(Math.random() * availableRecipes.length)];
-  const customer = customerNames[Math.floor(Math.random() * customerNames.length)];
-  
-  orders.push({
-    dishId: recipe.result,
-    emoji: recipe.resultEmoji,
-    name: recipe.resultName,
-    reward: recipe.gold + 10,
-    score: recipe.score,
-    customer: customer,
-    timeLeft: 90
-  });
-  
-  renderOrders();
-}
-
-function canServeOrder(order) {
-  // 그리드에 주문 요리를 만들 재료가 있는지 체크 (간단 버전)
-  // 실제로는 조리대에서 요리를 만들어야 함
-  return false; // 조리대에서 요리해야 하므로 항상 false
-}
-
-function serveOrder(idx) {
-  // 이 함수는 이제 사용 안 함 (조리대 시스템 사용)
-}
-
-function checkOrdersForDish(dishId) {
-  const completedOrders = [];
-  
-  orders.forEach((order, idx) => {
-    if (order.dishId === dishId) {
-      // 주문 완료!
-      score += order.score;
-      gold += order.reward;
-      completedOrders.push(idx);
-      customersServed++;
-    }
-  });
-  
-  completedOrders.sort((a, b) => b - a).forEach(idx => {
-    orders.splice(idx, 1);
-  });
-  
-  if (completedOrders.length > 0) {
-    updateScore();
-    updateGold();
-    renderOrders();
-    
-    showComboPopup(0, `🎉 주문 완료! +${completedOrders.length}명`);
-    
-    setTimeout(() => generateOrder(), 1000);
+window.addEventListener("keydown", (event) => {
+  if (event.key === "ArrowLeft") {
+    previewX -= 18;
   }
-}
+  if (event.key === "ArrowRight") {
+    previewX += 18;
+  }
+  if (event.key === " " || event.key === "Enter") {
+    dropPiece();
+  }
+  const radius = fruits[nextType].radius;
+  previewX = Math.max(wall + radius, Math.min(W - wall - radius, previewX));
+});
 
-function startOrderTimer() {
-  if (orderTimer) clearInterval(orderTimer);
-  
-  orderTimer = setInterval(() => {
-    if (gameOver) return;
-    
-    orders.forEach(order => {
-      order.timeLeft--;
-    });
-    
-    const prevLength = orders.length;
-    orders = orders.filter(o => o.timeLeft > 0);
-    
-    if (orders.length < prevLength) {
-      combo = 0;
-      renderOrders();
+function physicsStep() {
+  for (const p of pieces) {
+    p.vy += gravity;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vx *= friction;
+
+    if (p.x - p.radius < wall) {
+      p.x = wall + p.radius;
+      p.vx = Math.abs(p.vx) * bounce;
     }
-    
-    if (orders.length > 0) {
-      const maxTime = 90;
-      const minTime = Math.min(...orders.map(o => o.timeLeft));
-      const pct = (minTime / maxTime) * 100;
-      timerFillEl.style.width = pct + '%';
-      
-      if (pct < 30) {
-        timerFillEl.style.background = 'linear-gradient(90deg, #ef4444 0%, #f87171 100%)';
-      } else {
-        timerFillEl.style.background = 'linear-gradient(90deg, var(--accent) 0%, #ffab76 100%)';
+    if (p.x + p.radius > W - wall) {
+      p.x = W - wall - p.radius;
+      p.vx = -Math.abs(p.vx) * bounce;
+    }
+    if (p.y + p.radius > floor) {
+      p.y = floor - p.radius;
+      p.vy = -Math.abs(p.vy) * bounce;
+      p.vx *= 0.93;
+    }
+  }
+
+  for (let i = 0; i < pieces.length; i += 1) {
+    for (let j = i + 1; j < pieces.length; j += 1) {
+      const a = pieces[i];
+      const b = pieces[j];
+      if (a.merging || b.merging) continue;
+
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const distance = Math.hypot(dx, dy) || 1;
+      const minDistance = a.radius + b.radius;
+
+      if (distance >= minDistance) continue;
+
+      if (a.type === b.type && a.type < fruits.length - 1) {
+        mergePieces(a, b);
+        continue;
       }
-    } else {
-      timerFillEl.style.width = '100%';
+
+      const nx = dx / distance;
+      const ny = dy / distance;
+      const overlap = minDistance - distance;
+      const push = overlap / 2;
+      a.x -= nx * push;
+      a.y -= ny * push;
+      b.x += nx * push;
+      b.y += ny * push;
+
+      const tx = -ny;
+      const ty = nx;
+      const va = a.vx * nx + a.vy * ny;
+      const vb = b.vx * nx + b.vy * ny;
+      const tangentA = a.vx * tx + a.vy * ty;
+      const tangentB = b.vx * tx + b.vy * ty;
+      a.vx = vb * nx + tangentA * tx;
+      a.vy = vb * ny + tangentA * ty;
+      b.vx = va * nx + tangentB * tx;
+      b.vy = va * ny + tangentB * ty;
     }
-    
-    if (orders.length < 2) {
-      generateOrder();
-    }
-    
-    renderOrders();
-  }, 1000);
+  }
+
+  pieces = pieces.filter((p) => !p.merging);
+  checkGameOver();
 }
 
-// ===== 게임 상태 =====
-function checkLevelUp() {
-  const newLevel = Math.floor(score / 200) + 1;
-  if (newLevel > level) {
-    level = newLevel;
-    updateLevel();
-    showComboPopup(0, `⭐ 레벨 ${level}!`);
+function spawnParticles(x, y, color, count, sizeBase) {
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+    const speed = 2 + Math.random() * 4;
+    particles.push({
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 2,
+      life: 1,
+      decay: 0.02 + Math.random() * 0.02,
+      size: sizeBase * (0.5 + Math.random() * 0.8),
+      color,
+      type: Math.random() > 0.5 ? "circle" : "star",
+    });
   }
+}
+
+function spawnScorePopup(x, y, points) {
+  scorePopups.push({
+    x,
+    y,
+    text: "+" + points,
+    life: 1,
+    decay: 0.018,
+  });
+}
+
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.12;
+    p.vx *= 0.98;
+    p.life -= p.decay;
+    if (p.life <= 0) {
+      particles.splice(i, 1);
+    }
+  }
+  for (let i = scorePopups.length - 1; i >= 0; i--) {
+    const s = scorePopups[i];
+    s.y -= 1.2;
+    s.life -= s.decay;
+    if (s.life <= 0) {
+      scorePopups.splice(i, 1);
+    }
+  }
+  if (screenShake > 0) {
+    screenShake *= 0.88;
+    if (screenShake < 0.3) screenShake = 0;
+  }
+}
+
+function drawParticles() {
+  for (const p of particles) {
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.translate(p.x, p.y);
+    if (p.type === "star") {
+      ctx.rotate(p.life * Math.PI * 2);
+      const s = p.size * p.life;
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const angle = (Math.PI * 2 * i) / 5 - Math.PI / 2;
+        const x = Math.cos(angle) * s;
+        const y = Math.sin(angle) * s;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+        const innerAngle = angle + Math.PI / 5;
+        ctx.lineTo(Math.cos(innerAngle) * s * 0.4, Math.sin(innerAngle) * s * 0.4);
+      }
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.arc(0, 0, p.size * p.life, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+  for (const s of scorePopups) {
+    ctx.save();
+    ctx.globalAlpha = s.life;
+    ctx.fillStyle = "#fff";
+    ctx.strokeStyle = "#26311f";
+    ctx.lineWidth = 4;
+    ctx.font = "bold 22px Inter, sans-serif";
+    ctx.textAlign = "center";
+    ctx.strokeText(s.text, s.x, s.y);
+    ctx.fillText(s.text, s.x, s.y);
+    ctx.restore();
+  }
+}
+
+function mergePieces(a, b) {
+  a.merging = true;
+  b.merging = true;
+  const type = a.type + 1;
+  const midX = (a.x + b.x) / 2;
+  const midY = (a.y + b.y) / 2;
+  const merged = createPiece(type, midX, midY);
+  merged.vx = (a.vx + b.vx) * 0.25;
+  merged.vy = Math.min((a.vy + b.vy) * 0.25, -3);
+  pieces.push(merged);
+  score += fruits[type].score;
+  updateScore();
+
+  const fruit = fruits[type];
+  const particleCount = 8 + type * 3;
+  spawnParticles(midX, midY, fruit.color, particleCount, 3 + type * 0.5);
+  spawnParticles(midX, midY, fruit.accent, Math.floor(particleCount / 2), 2 + type * 0.3);
+  spawnScorePopup(midX, midY - fruit.radius - 10, fruit.score);
+  screenShake = 3 + type * 1.5;
 }
 
 function checkGameOver() {
-  const emptyCells = grid.filter(cell => cell === null).length;
-  
-  if (emptyCells === 0) {
-    let canMerge = false;
-    
-    for (let i = 0; i < GRID_SIZE; i++) {
-      if (grid[i] === null) continue;
-      
-      const row = Math.floor(i / GRID_COLS);
-      const col = i % GRID_COLS;
-      
-      const neighbors = [];
-      if (row > 0) neighbors.push(i - GRID_COLS);
-      if (row < GRID_ROWS - 1) neighbors.push(i + GRID_COLS);
-      if (col > 0) neighbors.push(i - 1);
-      if (col < GRID_COLS - 1) neighbors.push(i + 1);
-      
-      for (const nIdx of neighbors) {
-        if (grid[nIdx] === grid[i]) {
-          canMerge = true;
-          break;
-        }
-      }
-      if (canMerge) break;
-    }
-    
-    if (!canMerge && cookingSlotsItems.every(i => i === null)) {
-      gameOver = true;
-      clearInterval(orderTimer);
-      showGameOver();
-    }
+  if (gameOver) return;
+  const now = performance.now();
+  const blocked = pieces.some((p) => {
+    const settled = Math.abs(p.vx) + Math.abs(p.vy) < 1.1;
+    return p.y - p.radius < dangerLine && settled && now - p.born > 1800;
+  });
+  if (blocked) {
+    gameOver = true;
+    overlay.classList.remove("hidden");
   }
 }
 
-function showGameOver() {
-  gameOverMsgEl.textContent = `레벨 ${level}, ${customersServed}명 손님 응대 완료!`;
-  finalScoreEl.textContent = score;
-  overlayEl.classList.remove('hidden');
+function drawFruit(context, piece, scale = 1) {
+  const fruit = fruits[piece.type];
+  const r = piece.radius * scale;
+  const x = piece.x;
+  const y = piece.y;
+
+  context.save();
+  context.translate(x, y);
+
+  // 그림자
+  context.shadowColor = "rgba(58, 39, 16, 0.25)";
+  context.shadowBlur = Math.max(6, r * 0.15);
+  context.shadowOffsetY = Math.max(3, r * 0.08);
+
+  // 메인 그라데이션
+  const grad = context.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.1, 0, 0, r);
+  grad.addColorStop(0, fruit.accent);
+  grad.addColorStop(0.5, fruit.color);
+  grad.addColorStop(1, shade(fruit.color, -30));
+  context.fillStyle = grad;
+  context.beginPath();
+  context.arc(0, 0, r, 0, Math.PI * 2);
+  context.fill();
+
+  context.shadowColor = "transparent";
+
+  // 테두리
+  context.lineWidth = Math.max(2, r * 0.06);
+  context.strokeStyle = shade(fruit.color, -40);
+  context.stroke();
+
+  // 하이라이트 (빛 반사)
+  context.fillStyle = "rgba(255, 255, 255, 0.6)";
+  context.beginPath();
+  context.ellipse(-r * 0.28, -r * 0.32, r * 0.28, r * 0.18, -0.5, 0, Math.PI * 2);
+  context.fill();
+
+  context.fillStyle = "rgba(255, 255, 255, 0.3)";
+  context.beginPath();
+  context.arc(-r * 0.15, -r * 0.55, r * 0.1, 0, Math.PI * 2);
+  context.fill();
+
+  // 과일별 장식
+  drawFruitDetail(context, piece.type, r);
+
+  context.restore();
 }
 
-// ===== 시각 효과 =====
-function showFloatingScore(element, text, isGold = false) {
-  const rect = element.getBoundingClientRect();
+function drawFruitDetail(context, type, r) {
+  context.fillStyle = "rgba(255, 255, 255, 0.9)";
+  context.strokeStyle = "rgba(0, 0, 0, 0.3)";
+  context.lineWidth = Math.max(1, r * 0.04);
+  context.font = `bold ${Math.max(12, r * 0.5)}px sans-serif`;
+  context.textAlign = "center";
+  context.textBaseline = "middle";
   
-  const popup = document.createElement('div');
-  popup.className = 'float-score';
-  if (isGold) popup.classList.add('gold');
-  popup.textContent = text;
+  const labels = ["🍒", "🍓", "🍇", "🍊", "🍅", "🍎", "🍐", "🍑", "🍈", "🍉"];
+  const emoji = labels[type];
   
-  popup.style.left = rect.left + rect.width / 2 + 'px';
-  popup.style.top = rect.top + 'px';
-  
-  document.body.appendChild(popup);
-  
-  setTimeout(() => popup.remove(), 1000);
+  context.fillText(emoji, 0, 0);
 }
 
-function showComboPopup(comboCount, customText = null) {
-  const popup = document.createElement('div');
-  popup.className = 'combo-popup';
-  popup.textContent = customText || `🔥 ${comboCount} COMBO!`;
-  
-  document.body.appendChild(popup);
-  
-  setTimeout(() => popup.remove(), 1000);
+function shade(hex, amount) {
+  const raw = hex.replace("#", "");
+  const num = Number.parseInt(raw, 16);
+  const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+  const g = Math.max(0, Math.min(255, ((num >> 8) & 255) + amount));
+  const b = Math.max(0, Math.min(255, (num & 255) + amount));
+  return `rgb(${r}, ${g}, ${b})`;
 }
 
-// ===== 이벤트 리스너 =====
-restartBtn.addEventListener('click', init);
-restartOverlayBtn.addEventListener('click', init);
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'r' || e.key === 'R') {
-    init();
+function drawBoard() {
+  ctx.save();
+  
+  if (screenShake > 0) {
+    const shakeX = (Math.random() - 0.5) * screenShake * 2;
+    const shakeY = (Math.random() - 0.5) * screenShake * 2;
+    ctx.translate(shakeX, shakeY);
   }
-});
 
-// 게임 시작
-init();
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#fff4bf";
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle = "#8a6b32";
+  ctx.fillRect(0, 0, wall, H);
+  ctx.fillRect(W - wall, 0, wall, H);
+  ctx.fillRect(0, floor, W, H - floor);
+
+  ctx.setLineDash([10, 10]);
+  ctx.strokeStyle = "rgba(228, 85, 85, 0.72)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(wall, dangerLine);
+  ctx.lineTo(W - wall, dangerLine);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  if (!gameOver) {
+    const fruit = fruits[nextType];
+    ctx.globalAlpha = canDrop ? 0.62 : 0.28;
+    drawFruit(ctx, { type: nextType, x: previewX, y: dangerLine - fruit.radius - 8, radius: fruit.radius });
+    ctx.globalAlpha = 1;
+  }
+
+  pieces
+    .slice()
+    .sort((a, b) => a.radius - b.radius)
+    .forEach((piece) => drawFruit(ctx, piece));
+
+  drawParticles();
+  
+  ctx.restore();
+}
+
+function drawNext() {
+  nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+  const fruit = fruits[nextType];
+  const scale = Math.min(1, 28 / fruit.radius);
+  drawFruit(nextCtx, {
+    type: nextType,
+    x: nextCanvas.width / 2,
+    y: nextCanvas.height / 2,
+    radius: fruit.radius,
+  }, scale);
+}
+
+function tick(now) {
+  const delta = Math.min(3, (now - lastTime) / 16.67);
+  lastTime = now;
+  const steps = Math.ceil(delta);
+  for (let i = 0; i < steps; i += 1) {
+    if (!gameOver) physicsStep();
+  }
+  updateParticles();
+  drawBoard();
+  requestAnimationFrame(tick);
+}
+
+reset();
+requestAnimationFrame(tick);
